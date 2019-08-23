@@ -21,6 +21,7 @@ time2 = 0
 total = 0
 fps = 0
 textureIDs = []
+spd = 0.1
 
 textureNames = [
     "Grass_Top",
@@ -28,11 +29,12 @@ textureNames = [
 ]
 
 def loadTextures():
+    # Configure vars
     global textureNames
     pos = 0
     tempIDs = []
+    # For every texture in the list of names, load that file from the textures directory and assign an ID for it
     for name in textureNames:
-        #print(name)
         ID = glGenTextures(1)
         img_data = ImageLoader.load("Textures/" + name + ".png")
         tempIDs.append((ID, name))
@@ -45,6 +47,7 @@ def loadTextures():
     return tempIDs
 
 def selectTextureByID(id):
+    # Select texture as the active texture
     glEnable(GL_TEXTURE_2D)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
@@ -52,14 +55,11 @@ def selectTextureByID(id):
     glBindTexture(GL_TEXTURE_2D, id)
 
 def selectTextureByName(name):
-    #print(name)
     global textureIDs
-    #print(textureIDs)
+    # Find texture
     for t in textureIDs:
-        #print(t)
-        #print(textureIDs)
         if t[1] == name:
-            #print("Found Texture!")
+            # Found Texture! Select it as the active texture
             glEnable(GL_TEXTURE_2D)
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
@@ -68,12 +68,19 @@ def selectTextureByName(name):
             return None
 
 def main():
+    # Variables
     global frames
     global time1
     global time2
     global total
     global fps
     global textureIDs
+
+    moveTowards = True
+    paused = False
+    run = True
+    up_down_angle = 0
+
     # Initialize pygame
     pygame.init()
     display = (disp_width, disp_height)
@@ -83,14 +90,10 @@ def main():
     gluPerspective(90, (display[0]/display[1]), 0.1, 50.0)
     # Position camera
     glMatrixMode(GL_MODELVIEW)
-    #glTranslatef(0.0, 0.0, -20)
-    gluLookAt(0, 0, 0, 0, 0, 0, 0, 0, 1)
+    gluLookAt(0, -8, 0, 0, 0, 0, 0, 0, 1)
     glRotatef(0,0,0,0)
     viewMatrix = glGetFloatv(GL_MODELVIEW_MATRIX)
     glLoadIdentity()
-
-    moveTowards = True
-
     # Enable Depth
     glEnable(GL_DEPTH_TEST)
     glDepthFunc(GL_LEQUAL)
@@ -103,32 +106,22 @@ def main():
     glEnable(GL_LIGHT0)
     glLightfv(GL_LIGHT0, GL_AMBIENT, [0.5, 0.5, 0.5, 1])
     glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1])
-    #glShadeModel(GL_SMOOTH)
 
-    # Load all the textures
-    
+    # Load all the textures 
     textureIDs = loadTextures()
 
-    #print(textureIDs)
-
     # Initialize the cube objects
-    #cube = Cube(-3, 0, 0, 1)
-    #cube2 = Cube(3, 0, 0, 1)
     cubes = []
     for x in range(10):
         for y in range(10):
             for z in range(10):
                 cubes.append(Cube(x-5, y-5, z-5-20, 0.5))
-    xmov = 0
-    ymov = 0
-    zmov = 0
+    # Setup pygame dependent variables
     displayCenter = [display[i] // 2 for i in range(2)]
     mouseMove = [0, 0]
     pygame.mouse.set_pos(displayCenter)
-    paused = False
-    run = True
-    up_down_angle = 0
     while run:
+        # Allow pausing the game
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -161,13 +154,15 @@ def main():
 
             # apply the movment 
             if keypress[pygame.K_w]:
-                glTranslatef(0,0,0.1)
+                glTranslatef(0,0,spd)
             if keypress[pygame.K_s]:
-                glTranslatef(0,0,-0.1)
+                glTranslatef(0,0,-spd)
             if keypress[pygame.K_d]:
-                glTranslatef(-0.1,0,0)
+                glTranslatef(-spd,0,0)
             if keypress[pygame.K_a]:
-                glTranslatef(0.1,0,0)
+                glTranslatef(spd,0,0)
+            if keypressp[pygame.K_LSHIFT]:
+                glTranslatef(0,-spd,0)
 
             # apply the left and right rotation
             glRotatef(mouseMove[0]*0.1, 0.0, 1.0, 0.0)
@@ -179,16 +174,11 @@ def main():
             # apply view matrix
             glPopMatrix()
             glMultMatrixf(viewMatrix)
-
             glLightfv(GL_LIGHT0, GL_POSITION, [1, -1, 1, 0])
-
             glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-
             glPushMatrix()
             # Clear the OpenGL buffers
             glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-            # Handle movement
-            glTranslatef(xmov, ymov, zmov)
             # Draw cubes
             start = time.time()
             for c in cubes:
@@ -201,6 +191,7 @@ def main():
 
             # Update display and delay
             pygame.display.flip()
+            pygame.time.wait(10)
             if frames == 0:
                 time1 = time.time()
             frames += 1
